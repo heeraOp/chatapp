@@ -28,30 +28,35 @@
 
 <script>
 (function () {
-    const roomName = "{{ room }}";
+    const roomName = "{{ room|escapejs }}";
 
     const chatLog = document.getElementById("chat-log");
     const messageInput = document.getElementById("message-input");
     const usernameInput = document.getElementById("username-input");
     const phoneInput = document.getElementById("phone-input");
+    const sendBtn = document.getElementById("send-btn");
 
-    /* 🔒 FIX: Force WSS when page is HTTPS (Render requirement) */
+    /* 🔐 FORCE WSS ON HTTPS (RENDER FIX) */
     const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
     const wsUrl = wsScheme + window.location.host + "/ws/chat/" + roomName + "/";
 
     console.log("📡 WebSocket URL:", wsUrl);
 
-    const socket = new WebSocket(wsUrl);
+    let socket = new WebSocket(wsUrl);
 
-    socket.onopen = function () {
+    socket.onopen = () => {
         console.log("✅ WebSocket connected");
     };
 
-    socket.onerror = function (error) {
-        console.error("❌ WebSocket error:", error);
+    socket.onclose = () => {
+        console.warn("⚠️ WebSocket closed");
     };
 
-    socket.onmessage = function (e) {
+    socket.onerror = (err) => {
+        console.error("❌ WebSocket error", err);
+    };
+
+    socket.onmessage = (e) => {
         const data = JSON.parse(e.data);
 
         const msg = document.createElement("div");
@@ -62,9 +67,7 @@
                 <span class="msg-username">${data.username}</span>
                 <span class="msg-time">${data.timestamp}</span>
             </div>
-            <div class="msg-body">
-                ${data.message}
-            </div>
+            <div class="msg-body">${data.message}</div>
         `;
 
         chatLog.appendChild(msg);
@@ -72,12 +75,17 @@
     };
 
     function sendMessage() {
-        if (
-            !usernameInput.value.trim() ||
+        if (!usernameInput.value.trim() ||
             !phoneInput.value.trim() ||
             !messageInput.value.trim()
         ) {
             alert("Username, phone number, and message are required.");
+            return;
+        }
+
+        /* 🛑 PREVENT CLOSED SOCKET SEND */
+        if (socket.readyState !== WebSocket.OPEN) {
+            alert("Connection lost. Please refresh the page.");
             return;
         }
 
@@ -90,12 +98,10 @@
         messageInput.value = "";
     }
 
-    document.getElementById("send-btn").onclick = sendMessage;
+    sendBtn.addEventListener("click", sendMessage);
 
-    messageInput.addEventListener("keyup", function (e) {
-        if (e.key === "Enter") {
-            sendMessage();
-        }
+    messageInput.addEventListener("keyup", (e) => {
+        if (e.key === "Enter") sendMessage();
     });
 })();
 </script>
