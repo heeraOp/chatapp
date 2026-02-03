@@ -34,9 +34,12 @@ const messageInput = document.getElementById("message-input");
 const usernameInput = document.getElementById("username-input");
 const phoneInput = document.getElementById("phone-input");
 
+const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+
 const socket = new WebSocket(
-    "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
+    protocol + "://" + window.location.host + "/ws/chat/" + roomName + "/"
 );
+
 
 socket.onmessage = function(e) {
     const data = JSON.parse(e.data);
