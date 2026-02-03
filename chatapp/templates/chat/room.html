@@ -27,64 +27,76 @@
 </div>
 
 <script>
-const roomName = "{{ room }}";
+(function () {
+    const roomName = "{{ room }}";
 
-const chatLog = document.getElementById("chat-log");
-const messageInput = document.getElementById("message-input");
-const usernameInput = document.getElementById("username-input");
-const phoneInput = document.getElementById("phone-input");
+    const chatLog = document.getElementById("chat-log");
+    const messageInput = document.getElementById("message-input");
+    const usernameInput = document.getElementById("username-input");
+    const phoneInput = document.getElementById("phone-input");
 
-const protocol = window.location.protocol === "https:" ? "wss" : "ws";
+    /* 🔒 FIX: Force WSS when page is HTTPS (Render requirement) */
+    const wsScheme = window.location.protocol === "https:" ? "wss://" : "ws://";
+    const wsUrl = wsScheme + window.location.host + "/ws/chat/" + roomName + "/";
 
-const socket = new WebSocket(
-    protocol + "://" + window.location.host + "/ws/chat/" + roomName + "/"
-);
+    console.log("📡 WebSocket URL:", wsUrl);
 
+    const socket = new WebSocket(wsUrl);
 
-socket.onmessage = function(e) {
-    const data = JSON.parse(e.data);
+    socket.onopen = function () {
+        console.log("✅ WebSocket connected");
+    };
 
-    const msg = document.createElement("div");
-    msg.classList.add("message");
+    socket.onerror = function (error) {
+        console.error("❌ WebSocket error:", error);
+    };
 
-    msg.innerHTML = `
-        <div class="msg-header">
-            <span class="msg-username">${data.username}</span>
-            <span class="msg-time">${data.timestamp}</span>
-        </div>
+    socket.onmessage = function (e) {
+        const data = JSON.parse(e.data);
 
-        <div class="msg-body">
-            ${data.message}
-        </div>
-    `;
+        const msg = document.createElement("div");
+        msg.classList.add("message");
 
-    chatLog.appendChild(msg);
-    chatLog.scrollTop = chatLog.scrollHeight;
-};
+        msg.innerHTML = `
+            <div class="msg-header">
+                <span class="msg-username">${data.username}</span>
+                <span class="msg-time">${data.timestamp}</span>
+            </div>
+            <div class="msg-body">
+                ${data.message}
+            </div>
+        `;
 
-function sendMessage() {
-    if (
-        !usernameInput.value.trim() ||
-        !phoneInput.value.trim() ||
-        !messageInput.value.trim()
-    ) {
-        alert("Username, phone number, and message are required.");
-        return;
+        chatLog.appendChild(msg);
+        chatLog.scrollTop = chatLog.scrollHeight;
+    };
+
+    function sendMessage() {
+        if (
+            !usernameInput.value.trim() ||
+            !phoneInput.value.trim() ||
+            !messageInput.value.trim()
+        ) {
+            alert("Username, phone number, and message are required.");
+            return;
+        }
+
+        socket.send(JSON.stringify({
+            username: usernameInput.value,
+            phone: phoneInput.value,
+            message: messageInput.value
+        }));
+
+        messageInput.value = "";
     }
 
-    socket.send(JSON.stringify({
-        username: usernameInput.value,
-        phone: phoneInput.value,
-        message: messageInput.value
-    }));
+    document.getElementById("send-btn").onclick = sendMessage;
 
-    messageInput.value = "";
-}
-
-document.getElementById("send-btn").onclick = sendMessage;
-
-messageInput.onkeyup = function(e) {
-    if (e.key === "Enter") sendMessage();
-};
+    messageInput.addEventListener("keyup", function (e) {
+        if (e.key === "Enter") {
+            sendMessage();
+        }
+    });
+})();
 </script>
 {% endblock %}
