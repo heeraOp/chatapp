@@ -1,0 +1,87 @@
+{% extends "chat/base.html" %}
+
+{% block title %}Room: {{ room }}{% endblock %}
+
+{% block content %}
+<div class="chat-card">
+
+    <div class="chat-header">
+        Room: <strong>{{ room }}</strong>
+    </div>
+
+    <!-- User identity -->
+    <div class="user-info">
+        <input id="username-input" type="text" placeholder="Your name" />
+        <input id="phone-input" type="text" placeholder="Phone number (identity only)" />
+    </div>
+
+    <!-- Messages -->
+    <div id="chat-log" class="chat-log"></div>
+
+    <!-- Input -->
+    <div class="chat-input">
+        <input id="message-input" type="text" placeholder="Type a message..." />
+        <button id="send-btn">Send</button>
+    </div>
+
+</div>
+
+<script>
+const roomName = "{{ room }}";
+
+const chatLog = document.getElementById("chat-log");
+const messageInput = document.getElementById("message-input");
+const usernameInput = document.getElementById("username-input");
+const phoneInput = document.getElementById("phone-input");
+
+const socket = new WebSocket(
+    "ws://" + window.location.host + "/ws/chat/" + roomName + "/"
+);
+
+socket.onmessage = function(e) {
+    const data = JSON.parse(e.data);
+
+    const msg = document.createElement("div");
+    msg.classList.add("message");
+
+    msg.innerHTML = `
+        <div class="msg-header">
+            <span class="msg-username">${data.username}</span>
+            <span class="msg-time">${data.timestamp}</span>
+        </div>
+
+        <div class="msg-body">
+            ${data.message}
+        </div>
+    `;
+
+    chatLog.appendChild(msg);
+    chatLog.scrollTop = chatLog.scrollHeight;
+};
+
+function sendMessage() {
+    if (
+        !usernameInput.value.trim() ||
+        !phoneInput.value.trim() ||
+        !messageInput.value.trim()
+    ) {
+        alert("Username, phone number, and message are required.");
+        return;
+    }
+
+    socket.send(JSON.stringify({
+        username: usernameInput.value,
+        phone: phoneInput.value,
+        message: messageInput.value
+    }));
+
+    messageInput.value = "";
+}
+
+document.getElementById("send-btn").onclick = sendMessage;
+
+messageInput.onkeyup = function(e) {
+    if (e.key === "Enter") sendMessage();
+};
+</script>
+{% endblock %}

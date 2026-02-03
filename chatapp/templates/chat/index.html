@@ -1,0 +1,29 @@
+{% extends "chat/base.html" %}
+
+{% block title %}Join Chat{% endblock %}
+
+{% block content %}
+<div class="card">
+    <h1>Join a Chat Room</h1>
+    <p class="subtitle">Enter any room name to start chatting</p>
+
+    <form id="room-form">
+        <input
+            type="text"
+            id="room-name"
+            placeholder="Room name"
+            required
+            autocomplete="off"
+        >
+        <button type="submit">Enter Room</button>
+    </form>
+</div>
+
+<script>
+document.getElementById("room-form").onsubmit = function (e) {
+    e.preventDefault();
+    const room = document.getElementById("room-name").value;
+    window.location.pathname = "/chat/" + room + "/";
+};
+</script>
+{% endblock %}
